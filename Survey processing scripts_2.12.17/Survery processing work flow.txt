@@ -1,0 +1,5 @@
+download and clean the sheet
+question ID is matched compared with the scoring guide
+run the VA_RA_surveys.m to preprocess
+
+Some of the subjects for VA_RA_PTB were run twice, so the survey was also done twice. Ealier responses for these subjects were saved in an seperated .xlsx.

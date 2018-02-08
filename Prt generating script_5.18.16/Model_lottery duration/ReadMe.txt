@@ -1,0 +1,13 @@
+Functions:
+PTB_Protocol_Gen_ver3
+PTB_Protocol_OnsetExtract
+getBolckOrder
+getBlockOnsetOffset
+getSubjectsInDir
+ambig_utility
+
+Run:
+PTB_Protocol_Setup_ver3
+prt2sdm
+add_zeros_columns
+copysdm2folder
