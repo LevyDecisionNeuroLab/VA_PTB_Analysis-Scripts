@@ -4,19 +4,22 @@
 clearvars
 close all
 
-%% Input
-fitparwave = 'Behavior data fitpar_091017';
+%% Input set up
+fitparwave = 'Behavior data fitpar_03280218';
+search = 'grid'; % which method for searching optimal parameters
+model = 'ambigNrisk'; % which utility function
+isconstrained = 0; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
 
 %% Set up loading + subject selection
 % TODO: Maybe grab & save condition somewhere?
 
 root = 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan'; % Need to change if doing analysis in different folders
 data_path = fullfile(root, 'Behavior data of PTB log/'); % root of folders is sufficient
-fitpar_out_path = fullfile(root, fitparwave);
+fitpar_out_path = fullfile(root,'Fitpar files', fitparwave);
 %graph_out_path  = fullfile(root, 'ChoiceGraphs/');
 
 if exist(fitpar_out_path)==0
-    mkdir(root,fitparwave)
+    mkdir(fullfile(root,'Fitpar files'),fitparwave)
 end
 
 addpath(genpath(data_path)); % generate path for all the subject data folder
@@ -29,8 +32,8 @@ exclude = [77 1218];
 % need to do 95, incomplete data
 % 1269 GL/GL
 
-% subjects = subjects(~ismember(subjects, exclude));
-subjects = [95];
+subjects = subjects(~ismember(subjects, exclude));
+% subjects = [95];
 
 for subj_idx = 1:length(subjects)
   domains = {'GAINS', 'LOSS'};
@@ -47,7 +50,7 @@ for subj_idx = 1:length(subjects)
     % Exclude non-responses and test questions (where lottery value < fixed value)
     % subj 95 has incomplete data in LOSS; ToDo: change the logic to detect
     % incomplete data
-    if subjectNum == 95 && strcmp(domain, 'LOSS');
+    if subjectNum == 95 && strcmp(domain, 'LOSS')
         choiceDone = zeros(1, 124);
         choiceDone(1:length(Data.choice)) = Data.choice;
         include_indices = and(choiceDone ~=0, Data.vals' ~= 4);
@@ -76,7 +79,7 @@ for subj_idx = 1:length(subjects)
     % end
     
     % choice data for $4 only, for rationality check only   
-    if subjectNum == 95 && strcmp(domain, 'LOSS');
+    if subjectNum == 95 && strcmp(domain, 'LOSS')
         idx_only4 = and(choiceDone ~=0, Data.vals' == 4);
     else 
         idx_only4 = and(Data.choice ~= 0, Data.vals' == 4);
@@ -106,44 +109,78 @@ for subj_idx = 1:length(subjects)
     prob = unique(probs); % All probability levels
     base = 0; % ? % TODO: Find out meaning -- undescribed in function. RJ-another parm in the model. Not used.
 
-    model = 'ambigNrisk';
-    b0 = [-1 .5 .5]'; % ? % TODO: Find out meaning -- undescribed in function
+    if strcmp(search, 'grid')
+    % grid search
+    % range of each parameter
+        if strcmp(model,'ambigNrisk')
+            slopeRange = -4:0.2:1;
+            bRange = -2:0.2:2;
+            aRange = 0:0.2:4;
+        else
+            slopeRange = -4:0.2:1;
+            bRange = -2:0.2:2;
+            aRange = -2:0.2:2;
+        end
+        % three dimenstions
+        [b1, b2, b3] = ndgrid(slopeRange, bRange, aRange);
+        % all posibile combinatinos of three parameters
+        b0 = [b1(:) b2(:) b3(:)];
+    elseif strcmp(search,'single')
+        % single search
+        b0 = [-1 0.5 0.5]; % starting point of the search process, [gamma, beta, alpha]
+    elseif strcmp(search, 'random')
+        % independently randomized multiple search starting points
+        bstart = [-1 0 1]; % starting point of the search process, [gamma, beta, alpha]
+        itr = 100; % 100 iteration of starting point
+        b0 = zeros(itr,length(bstart));
+        for i = 1:itr
+            % gamma: negative, around -1, so (-2,0)
+            % beta: [-1,1] possible to be larger than 1?
+            % alpha: (0,4)
+            b0(i,:) = bstart + [-1+2*rand(1) -1+2*rand(1) -1+2*rand(1)]; % randomize search starting point, slope, beta, alpha
+        end
+    end
+
+    
     refVal = fixed_valueP * ones(length(choice), 1);
     refProb = fixed_prob  * ones(length(choice), 1);
 
     % Two versions of function, calculate both the unconstrained and constrained fittings:
     % fit_ambgiNrisk_model: unconstrained
-    [info_uncstr, p_uncstr] = fit_ambigNrisk_model(choice, ...
-        refVal', ...
-        values', ...
-        refProb', ...
-        probs', ...
-        ambigs', ...
-        model, ...
-        b0, ...
-        base);
+    if isconstrained == 0 || isconstrained == 2
+        [info_uncstr, p_uncstr] = fit_ambigNrisk_model(choice, ...
+            refVal', ...
+            values', ...
+            refProb', ...
+            probs', ...
+            ambigs', ...
+            model, ...
+            b0, ...
+            base);
 
-    slope_uncstr = info_uncstr.b(1);
-    a_uncstr = info_uncstr.b(3);
-    b_uncstr = info_uncstr.b(2);
-    r2_uncstr = info_uncstr.r2;
+        slope_uncstr = info_uncstr.b(1);
+        a_uncstr = info_uncstr.b(3);
+        b_uncstr = info_uncstr.b(2);
+        r2_uncstr = info_uncstr.r2;
+    end
 
-    % fit_ambigNrisk_model_Constrained: constrained on alpha and beta    
-    [info_cstr, p_cstr] = fit_ambigNrisk_model_Constrained(choice, ...
-        refVal', ...
-        values', ...
-        refProb', ...
-        probs', ...
-        ambigs', ...
-        model, ...
-        b0, ...
-        base);
+    if isconstrained == 1 || isconstrained == 2
+        % fit_ambigNrisk_model_Constrained: constrained on alpha and beta    
+        [info_cstr, p_cstr] = fit_ambigNrisk_model_Constrained(choice, ...
+            refVal', ...
+            values', ...
+            refProb', ...
+            probs', ...
+            ambigs', ...
+            model, ...
+            b0, ...
+            base);
 
-    slope_cstr = info_cstr.b(1);
-    a_cstr = info_cstr.b(3);
-    b_cstr = info_cstr.b(2);
-    r2_cstr = info_cstr.r2;
-
+        slope_cstr = info_cstr.b(1);
+        a_cstr = info_cstr.b(3);
+        b_cstr = info_cstr.b(2);
+        r2_cstr = info_cstr.r2;
+    end
     
     %% Create choice matrices
 
@@ -325,24 +362,28 @@ for subj_idx = 1:length(subjects)
 % %     end
 % %     title([char(subject) '  beta loss = ' num2str(bN)]);
 %% Save generated values
-     
+ 
     Data.riskyChoices = riskyChoicesP;
     Data.ambigChoices = ambigChoicesP;
     
     Data.choiceProb4 = choice_prob_4;
+    
+    if isconstrained == 0 || isconstrained == 2
+        Data.MLE_uncstr = info_uncstr;
+        Data.alpha_uncstr = info_uncstr.b(3);
+        Data.beta_uncstr = info_uncstr.b(2);
+        Data.gamma_uncstr = info_uncstr.b(1);
+        Data.r2_uncstr = info_uncstr.r2;
+    end
 
-    Data.MLE_uncstr = info_uncstr;
-    Data.alpha_uncstr = info_uncstr.b(3);
-    Data.beta_uncstr = info_uncstr.b(2);
-    Data.gamma_uncstr = info_uncstr.b(1);
-    Data.r2_uncstr = info_uncstr.r2;
-
-    Data.MLE_cstr = info_cstr;
-    Data.alpha_cstr = info_cstr.b(3);
-    Data.beta_cstr = info_cstr.b(2);
-    Data.gamma_cstr = info_cstr.b(1);
-    Data.r2_cstr = info_cstr.r2;
-
+    if isconstrained == 1 || isconstrained == 2
+        Data.MLE_cstr = info_cstr;
+        Data.alpha_cstr = info_cstr.b(3);
+        Data.beta_cstr = info_cstr.b(2);
+        Data.gamma_cstr = info_cstr.b(1);
+        Data.r2_cstr = info_cstr.r2;
+    end
+    
     Data.riskyChoices_byLevel= riskyChoices_byLevel;
     Data.ambigChoices_byLevel=ambigChoices_byLevel;
 
