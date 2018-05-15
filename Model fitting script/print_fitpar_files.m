@@ -6,9 +6,9 @@ close all
 %addpath(genpath('C:\Users\lr382\Desktop\Lital\RISK-VA\Behavior for PTB\'));
 
 %Input
-fitparwave = 'Behavior data fitpar_03280118';
-outputwave = '_03280118';
-isconstrained = 0;
+fitparwave = 'Behavior data fitpar_03270118';
+outputwave = '_0327010218';
+isconstrained = 2;
 % exclude should match those in the fit_parameters.m script
 exclude = [77 1218]; 
 % TEMPORARY: subjects incomplete data (that the script is not ready for)
@@ -37,9 +37,9 @@ choiceData_file = [path 'choice_data' outputwave '.xls']; % choice matrix
 if isconstrained == 2
     % results file
     fid = fopen([path summary_file1],'w')
-    fprintf(fid,'\tPar_unconstrained\t\t\t\t\t\t\t\tPar_constrained\t\t\t\t\t\t\t\tNonPar\n')
-    fprintf(fid,'subject\tgains\t\t\t\tlosses\t\t\t\tgains\t\t\t\tlosses\t\t\t\tgains\t\t\t\t\t\tlosses\n')
-    fprintf(fid,'\talpha\tbeta\tgamma\tr2\talpha\tbeta\tgamma\tr2\talpha\tbeta\tgamma\tr2\talpha\tbeta\tgamma\tr2\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
+    fprintf(fid,'\tPar_unconstrained\t\t\t\t\t\t\t\t\t\t\t\t\t\tPar_constrained\t\t\t\t\t\t\t\t\t\t\t\t\t\tNonPar\n')
+    fprintf(fid,'subject\tgains\t\t\t\t\t\t\tlosses\t\t\t\t\t\t\tgains\t\t\t\t\t\t\tlosses\t\t\t\t\t\t\tgains\t\t\t\t\t\tlosses\n')
+    fprintf(fid,'\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
 end
 
 % unconstrained
@@ -47,8 +47,8 @@ if isconstrained == 0
     % results file
     fid = fopen([path summary_file1],'w')
     fprintf(fid,'\tPar_unconstrained\n')
-    fprintf(fid,'subject\tgains\t\t\t\tlosses\t\t\t\tgains\t\t\t\t\t\tlosses\n')
-    fprintf(fid,'\talpha\tbeta\tgamma\tr2\talpha\tbeta\tgamma\tr2\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
+    fprintf(fid,'subject\tgains\t\t\t\t\t\t\tlosses\t\t\t\t\t\t\tgains\t\t\t\t\t\tlosses\n')
+    fprintf(fid,'\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
 end
 
 % constrained
@@ -56,8 +56,8 @@ if isconstrained == 1
     % results file
     fid = fopen([path summary_file1],'w')
     fprintf(fid,'\tPar_constrained\n')
-    fprintf(fid,'subject\tgains\t\t\t\tlosses\t\t\t\tgains\t\t\t\t\t\tlosses\n')
-    fprintf(fid,'\talpha\tbeta\tgamma\tr2\talpha\tbeta\tgamma\tr2\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
+    fprintf(fid,'subject\tgains\t\t\t\t\t\t\tlosses\t\t\t\t\t\t\tgains\t\t\t\t\t\tlosses\n')
+    fprintf(fid,'\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\talpha\tbeta\tgamma\tr2\tLL\tAIC\tBIC\tG_risk25\tG_risk50\tG_risk75\tG_amb24\tG_amb50\tG_amb74\tL_risk25\tL_risk50\tL_risk75\tL_amb24\tL_amb50\tL_amb74\n')
 end
 
 % Fill in subject numbers separated by commas
@@ -72,13 +72,19 @@ for s = 1:length(subjects)
         bP = Data.beta_uncstr;
         gP = Data.gamma_uncstr;
         r2P = Data.r2_uncstr;
+        LLP = Data.MLE_uncstr.LL;
+        AICP = Data.MLE_uncstr.AIC;
+        BICP = Data.MLE_uncstr.BIC;
     end
     
     if isconstrained ~=0
         aP_constr = Data.alpha_cstr;
         bP_constr = Data.beta_cstr;
         gP_constr = Data.gamma_cstr;
-        r2P_constr = Data.r2_cstr;        
+        r2P_constr = Data.r2_cstr;
+        LLP_constr = Data.MLE_cstr.LL;
+        AICP_constr = Data.MLE_cstr.AIC;
+        BICP_constr = Data.MLE_cstr.BIC;      
     end
     
     riskyChoices_byLevelP = Data.riskyChoices_byLevel;
@@ -94,6 +100,10 @@ for s = 1:length(subjects)
         bN = Data.beta_uncstr;
         gN = Data.gamma_uncstr;
         r2N = Data.r2_uncstr;
+        LLN = Data.MLE_uncstr.LL;
+        AICN = Data.MLE_uncstr.AIC;
+        BICN = Data.MLE_uncstr.BIC;
+
     end
     
     if isconstrained ~=0
@@ -101,6 +111,10 @@ for s = 1:length(subjects)
         bN_constr = Data.beta_cstr;
         gN_constr = Data.gamma_cstr;
         r2N_constr = Data.r2_cstr;
+        LLN_constr = Data.MLE_cstr.LL;
+        AICN_constr = Data.MLE_cstr.AIC;
+        BICN_constr = Data.MLE_cstr.BIC;
+
     end
 
     riskyChoices_byLevelN = Data.riskyChoices_byLevel;
@@ -111,23 +125,25 @@ for s = 1:length(subjects)
     
     if isconstrained == 2
         %write into param text file
-        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
-            num2str(subject), aP, bP, gP, r2P, aN, bN, gN, r2N,...
-            aP_constr, bP_constr, gP_constr, r2P_constr, aN_constr, bN_constr, gN_constr, r2N_constr,...
+        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
+            num2str(subject), aP, bP, gP, r2P, LLP, AICP, BICP, aN, bN, gN, r2N, LLN, AICN, BICN, ...
+            aP_constr, bP_constr, gP_constr, r2P_constr, LLP_constr, AICP_constr, BICP_constr,...
+            aN_constr, bN_constr, gN_constr, r2N_constr, LLN_constr, AICN_constr, BICN_constr,...
             riskyChoices_byLevelP,ambigChoices_byLevelP,riskyChoices_byLevelN,ambigChoices_byLevelN);
     end
     
     if isconstrained == 0
         %write into param text file
-        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
-            num2str(subject), aP, bP, gP, r2P, aN, bN, gN, r2N,...
+        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
+            num2str(subject), aP, bP, gP, r2P, LLP, AICP, BICP, aN, bN, gN, r2N, LLN, AICN, BICN, ...
             riskyChoices_byLevelP,ambigChoices_byLevelP,riskyChoices_byLevelN,ambigChoices_byLevelN);
     end
 
     if isconstrained == 1
         %write into param text file
-        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
-            num2str(subject), aP_constr, bP_constr, gP_constr, r2P_constr, aN_constr, bN_constr, gN_constr, r2N_constr,...
+        fprintf(fid,'%s\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n',...
+            num2str(subject), aP_constr, bP_constr, gP_constr, r2P_constr, LLP_constr, AICP_constr, BICP_constr,...
+            aN_constr, bN_constr, gN_constr, r2N_constr, LLN_constr, AICN_constr, BICN_constr,...
             riskyChoices_byLevelP,ambigChoices_byLevelP,riskyChoices_byLevelN,ambigChoices_byLevelN);
     end
     
