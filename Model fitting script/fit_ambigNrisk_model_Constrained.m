@@ -52,12 +52,12 @@
 %     brian 03.14.06 added fallback to FMINSEARCH, multiple fit capability
 %     ifat  12.01.06 adapted for ambiguity and risk + CI
 
-function [info,p] = fit_ambigNrisk_model(choice,vF,vA,pF,pA,AL,model,b0,base);
+function [info,p] = fit_ambigNrisk_model_Constrained(choice,vF,vA,pF,pA,AL,model,b0,base);
 % If multiple model fits requested, loop and pack
 
 if iscell(model)
    for i = 1:length(model)
-      [info(i),p{i}] = fit_ambigNrisk_model(choice,vF,vA,pF,pA,AL,model{i});
+      [info(i),p{i}] = fit_ambigNrisk_model_Constrained(choice,vF,vA,pF,pA,AL,model{i});
    end
    return;
 end
@@ -95,49 +95,59 @@ nobs = length(choice);
 %    fprintf('Optimization FAILED, #iterations = %g\n',convg.iterations);
 % else
 %    fprintf('Optimization CONVERGED, #iterations = %g\n',convg.iterations);
-optimizer = 'fmincon';
 
-OPTIONS = optimset('Display','off','TolCon',1e-6,'TolFun',1e-5,'TolX',1e-5,...
-    'DiffMinChange',1e-4,'Maxiter',100000,'MaxFunEvals',20000);
-[b,negLL,exitflag,convg] = fmincon(@local_negLL,b0,[],[],[],[],[-inf -3.67 .0894],[inf 4 4.34],[],OPTIONS,choice,vF,vA,pF,pA,AL,model,base);
-%X = fmincon(fun,x0,A,B,Aeq,Beq,lb,ub,nonlcon,Opts,a,b)
+for i = 1 : size(b0,1)
+    b00 = b0(i,:)'; % search starting point
+    
+    optimizer = 'fmincon';
 
+    OPTIONS = optimset('Display','off','TolCon',1e-6,'TolFun',1e-5,'TolX',1e-5,...
+        'DiffMinChange',1e-4,'Maxiter',100000,'MaxFunEvals',20000);
+    [b,negLL,exitflag,convg] = fmincon(@local_negLL,b00,[],[],[],[],[-inf -3.67 .0894],[inf 4 4.34],[],OPTIONS,choice,vF,vA,pF,pA,AL,model,base);
+    %X = fmincon(fun,x0,A,B,Aeq,Beq,lb,ub,nonlcon,Opts,a,b)
 
+    
+    % Unrestricted log-likelihood
+    LL = -negLL;
+    if i == 1
+        info.LL = LL;
+    end
 
-% Choice probabilities (for VARIED)
-p = choice_prob_ambigNrisk(base,vF,vA,pF,pA,AL,b,model);
+    if i == 1 || (i ~=1 && LL > info.LL)% first iteration; and if a later iteration renders larger likelihood, replace info
+        % Choice probabilities (for VARIED)
+        p = choice_prob_ambigNrisk(base,vF,vA,pF,pA,AL,b,model);
 
-% Unrestricted log-likelihood
-LL = -negLL;
-% Restricted log-likelihood
-LL0 = sum((choice==1).*log(0.5) + (1 - (choice==1)).*log(0.5));
+        % Restricted log-likelihood
+        LL0 = sum((choice==1).*log(0.5) + (1 - (choice==1)).*log(0.5)); % assuming no predictors, the chance of choosing and not choosing the lottery are both 50%
 
-% Confidence interval, requires Hessian from FMINUNC
-try
-    invH = inv(-H);
-    se = sqrt(diag(-invH));
-catch
+        % Confidence interval, requires Hessian from FMINUNC
+        try
+            invH = inv(-H);
+            se = sqrt(diag(-invH));
+        catch
+        end
+
+        info.nobs = nobs;
+        info.nb = length(b);
+        info.model = model;
+        info.optimizer = optimizer;
+        info.exitflag = exitflag;
+        info.b = b;
+
+        try
+            info.se = se;
+            info.ci = [b-se*norminv(1-thresh/2) b+se*norminv(1-thresh/2)]; % Wald confidence
+            info.tstat = b./se;
+        catch
+        end
+
+        info.LL = LL;
+        info.LL0 = LL0;
+        info.AIC = -2*LL + 2*length(b);
+        info.BIC = -2*LL + length(b)*log(nobs);
+        info.r2 = 1 - LL/LL0; % McFadden's Pseudo r squared = 1-LLmodel/LLwithoutModel
+    end
 end
-
-info.nobs = nobs;
-info.nb = length(b);
-info.model = model;
-info.optimizer = optimizer;
-info.exitflag = exitflag;
-info.b = b;
-
-try
-    info.se = se;
-    info.ci = [b-se*norminv(1-thresh/2) b+se*norminv(1-thresh/2)]; % Wald confidence
-    info.tstat = b./se;
-catch
-end
-
-info.LL = LL;
-info.LL0 = LL0;
-info.AIC = -2*LL + 2*length(b);
-info.BIC = -2*LL + length(b)*log(nobs);
-info.r2 = 1 - LL/LL0;
 
 %----- LOCAL FUNCTIONS
 function sumerr = local_negLL(beta,choice,vF,vA,pF,pA,AL,model,base);

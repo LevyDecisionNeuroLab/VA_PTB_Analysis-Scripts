@@ -5,10 +5,10 @@ clearvars
 close all
 
 %% Input set up
-fitparwave = 'Behavior data fitpar_03280218';
+fitparwave = 'Behavior data fitpar_091318';
 search = 'grid'; % which method for searching optimal parameters
 model = 'ambigNrisk'; % which utility function
-isconstrained = 0; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
+isconstrained = 1; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
 
 %% Set up loading + subject selection
 % TODO: Maybe grab & save condition somewhere?
@@ -33,7 +33,7 @@ exclude = [77 1218];
 % 1269 GL/GL
 
 subjects = subjects(~ismember(subjects, exclude));
-% subjects = [95];
+% subjects = [1210];
 
 for subj_idx = 1:length(subjects)
   domains = {'GAINS', 'LOSS'};
@@ -162,6 +162,9 @@ for subj_idx = 1:length(subjects)
         a_uncstr = info_uncstr.b(3);
         b_uncstr = info_uncstr.b(2);
         r2_uncstr = info_uncstr.r2;
+        
+        disp(['Subject ' num2str(subjectNum) ' unconstrained fitting completed'])
+
     end
 
     if isconstrained == 1 || isconstrained == 2
@@ -180,6 +183,8 @@ for subj_idx = 1:length(subjects)
         a_cstr = info_cstr.b(3);
         b_cstr = info_cstr.b(2);
         r2_cstr = info_cstr.r2;
+        
+        disp(['Subject ' num2str(subjectNum) ' constrained fitting completed'])
     end
     
     %% Create choice matrices
