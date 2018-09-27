@@ -1,15 +1,15 @@
 clearvars
 close all
 %% Input
-fitparwave = 'Behavior data fitpar_091017';
-prtwave = 'Prt files_091417';
+fitparwave = 'Behavior data fitpar_03280218';
+prtwave = 'Prt files_092718';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
 % prtwave = ['Prt files_' filefolders{2}];
 
-% Exclude subjects with ineligible imaging data
-exclude = [76 78 79 80 81 95 101 102 104 117 1210 1220 1234 1250 1272 1316 1326 1337];
+% Exclude subjects with bad imaging data
+exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
 % subject 95 has incomplete data
 % subejct 1269 GL/GL
 
@@ -26,6 +26,11 @@ if exist(path_out) ==0;
     mkdir(fullfile(root, 'Prt files'), prtwave);
 end
 
+% read model fitted attitudes
+% because some subjects used unconstrained, some used constrained, could
+% not easily read from fitpar data structure
+par = readtable('D:\Ruonan\Projects in the lab\VA_RA_PTB\Clinical and behavioral\par nonpar att_allSubj_09152018.xlsx');
+
 % Computational parameters
 tr = 1; % Temporal resolution, in seconds
 trialduration = 6; % How many volumes *including onset* we analyze, in volumes
@@ -33,7 +38,11 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 
 % Permissible values: 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'SV', or '' for no parameter
 % NOTE: For more parameters, PTB_Protocol_Gen must be edited to (a) accept them, (b) calculate them
-ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
+% ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
+% ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
+% ParametricModType = {'SV'};
+ParametricModType = {'CV'};
+
 % % Instead use input dialog
 % param = inputdlg({'Enter Parametric Modulator name'}, 'Parametric Modulator');
 % ParametricModType = param;
@@ -53,7 +62,7 @@ end
 
 SubjectNums = SubjectNums(~ismember(SubjectNums, exclude));
 
-SubjectNums = [1074 99];
+% SubjectNums = [75];
 
 gainsloss = {'gains', 'loss'}; % 'gains', 'loss', or both
 
@@ -92,7 +101,7 @@ for i = 1:length(SubjectNums)
             PTB_Protocol_Gen_ver3(SubjectNums(i), gainsloss{j}, ...
                 tr, trialduration, DiscardedAcquisition, ...
                 ParametricModType{k}, ...
-                path_in, path_out, PRT)
+                path_in, path_out, PRT, par(par.id == SubjectNums(i),:))
         end
     end
 end

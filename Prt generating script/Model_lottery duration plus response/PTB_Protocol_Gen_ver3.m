@@ -1,4 +1,4 @@
-function PTB_Protocol_Gen_ver3(subjectNum, gainsloss, tr, trialduration, DiscAcq, ParametricMod, path_in, path_out, PRT)
+function PTB_Protocol_Gen_ver3(subjectNum, gainsloss, tr, trialduration, DiscAcq, ParametricMod, path_in, path_out, PRT, par)
 %PTB_PROTOCOL_GEN Generates PRT Files from Psychtoolbox Data Files
 %
 %INPUTS:
@@ -11,6 +11,8 @@ function PTB_Protocol_Gen_ver3(subjectNum, gainsloss, tr, trialduration, DiscAcq
 %       path_in - the dominant folder that both auxiliary function files and data files are stored in
 %       path_out - the folder to save the generated PRT files into
 %       PRT - a struct of settings for the PRT file
+%       par - a table containing model fitted parameters, both gains and
+%       losses for a single subject
 %
 %OUTPUT: PRT files for given domain in the folder specified by `path_out`
 %
@@ -26,7 +28,7 @@ if (~is_gains && ~strcmp(gainsloss, 'loss'))
 end
 
 % Set NumParametricWeights on the basis of ParametricMod
-permissible_parameters = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'SV'};
+permissible_parameters = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'SV', 'CV'};
 if sum(strcmp(ParametricMod, permissible_parameters)) 
   % using sum because strcmp returns a matrix of logicals if string is compared 
   % with an array of strings
@@ -66,25 +68,55 @@ else
   data = ldata;
 end
 
+% model fitted parameters for calculating subjective value
+alpha = par.alpha(par.isGain == is_gains);
+beta = par.beta(par.isGain == is_gains);
+
 %% Get correct block order
 block_order = getBlockOrder(is_gains, gdata, ldata);
 
 %% Compute subjective value of each choice
-% Use the constrained fitting.
+% Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
 for reps = 1:length(data.choice)
   sv(reps, 1) = ambig_utility(0, ...
       data.vals(reps), ...
       data.probs(reps), ...
       data.ambigs(reps), ...
-      data.alpha_cstr, ...
-      data.beta_cstr, ...
+      alpha, ...
+      beta, ...
       'ambigNrisk');
 end
+
+% Side with lottery is counterbalanced across subjects 
+% -> code 0 as reference choice, 1 as lottery choice
+% TODO: Double-check this is so? - This is true(RJ)
+% TODO: Save in a different variable?
+% if sum(choice == 2) > 0 % Only if choice has not been recoded yet. RJ-Not necessary
+% RJ-If subject do not press 2 at all, the above if condition is problematic
+choice = data.choice;
+choice(choice==0) = NaN;
+
+if data.refSide == 2
+  choice(choice == 2) = 0;
+  choice(choice == 1) = 1;
+elseif data.refSide == 1 % Careful: rerunning this part will make all choices 0
+  choice(choice == 1) = 0;
+  choice(choice == 2) = 1;
+end
+
+% calculate the subjective value for the fixed $5
+sv_fixed = ambig_utility(0,5,1,0,alpha,beta,'ambigNrisk');
 
 % Flip sign, since the data files store only value magnitudes 
 if ~is_gains
   sv(:, 1) = -1 * sv(:, 1);
+  sv_fixed = -sv_fixed;
 end
+
+% calculate the chosen subjective value (CV) for each trial
+cv = sv;
+cv(choice == 0) = sv_fixed;
+cv(isnan(choice)) = NaN;
 
 %% Load onset times
 gon = PTB_Protocol_OnsetExtract(gdata);
@@ -121,6 +153,7 @@ for blocknum = 1:4
     block_rlevel = data.probs(current_block_range);
     block_alevel = data.ambigs(current_block_range);
     block_sv = sv(current_block_range);
+    block_cv = cv(current_block_range);
 
     if ~is_gains
       block_amt = -1 * block_amt;
@@ -147,6 +180,9 @@ for blocknum = 1:4
     elseif strcmp(ParametricMod, 'SV')
       block_amb = [block_amb block_sv(amb_index)];
       block_risk = [block_risk block_sv(risk_index)];
+    elseif strcmp(ParametricMod, 'CV')
+      block_amb = [block_amb block_cv(amb_index)];
+      block_risk = [block_risk block_cv(risk_index)]; 
     end
   end
 
