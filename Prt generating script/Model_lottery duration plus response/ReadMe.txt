@@ -10,6 +10,7 @@ Run:
 PTB_Protocol_Setup_ver3
 prt2sdm
 add_zeros_columns
+maybe: Combine sdm and motion corrections
 copysdm2folder
 -----------------------------------
 Note:
