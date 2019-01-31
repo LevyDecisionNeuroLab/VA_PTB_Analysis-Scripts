@@ -6,9 +6,9 @@ close all
 %addpath(genpath('C:\Users\lr382\Desktop\Lital\RISK-VA\Behavior for PTB\'));
 
 %Input
-fitparwave = 'Behavior data fitpar_03270118';
-outputwave = '_0327010218';
-isconstrained = 2;
+fitparwave = 'Behavior data fitpar_091318';
+outputwave = '_091318';
+isconstrained = 1;
 % exclude should match those in the fit_parameters.m script
 exclude = [77 1218]; 
 % TEMPORARY: subjects incomplete data (that the script is not ready for)
@@ -19,6 +19,7 @@ data_path = fullfile(root, 'Behavior data of PTB log/'); % Original log from PTB
 subjects = getSubjectsInDir(data_path, 'subj'); %function
 subjects = subjects(~ismember(subjects, exclude));
 
+% subjects = [1210];
 path = fullfile(root, 'Fitpar files', fitparwave, filesep);
 cd(path)
 % cd 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan\Behavior data fitpar_091017';
