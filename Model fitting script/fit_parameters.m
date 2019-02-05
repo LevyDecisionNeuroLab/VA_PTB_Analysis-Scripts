@@ -5,10 +5,10 @@ clearvars
 close all
 
 %% Input set up
-fitparwave = 'Behavior data fitpar_013119';
+fitparwave = 'Behavior data fitpar_020519';
 search = 'grid'; % which method for searching optimal parameters
 model = 'ambigNrisk'; % which utility function
-isconstrained = 1; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
+isconstrained = 2; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
 isdivided = 1; % if fit model to data for each day. 0-fit model on all data, 1-fit model on each day's data should get two values per subject for each parameter
 
 %% Set up loading + subject selection
@@ -34,7 +34,7 @@ exclude = [77 1218];
 % 1269 GL/GL
 
 subjects = subjects(~ismember(subjects, exclude));
-subjects = [1210];
+% subjects = [1210];
 
 for subj_idx = 1:length(subjects)
   domains = {'GAINS', 'LOSS'};
@@ -95,7 +95,7 @@ for subj_idx = 1:length(subjects)
     end
        
     % clean and fit data for each day
-    for day = size(values_bothday, 2)        
+    for day = 1 : size(values_bothday, 2)        
         %% Clean data 
         
         % exclude trials with value = 4 and with no resposne
@@ -242,7 +242,7 @@ for subj_idx = 1:length(subjects)
         %  .ambigChoicesP and .riskyChoicesP saved into `fitpar` file
 
         % Ambiguity levels by payoff values
-        valueP = unique(values(ambigs > 0)); % each lottery payoff value under ambiguity
+        valueP = unique(values_all(ambigs_all > 0 & values_all ~= 4)); % each lottery payoff value under ambiguity
         ambigChoicesP = zeros(length(ambig), length(valueP)); % each row an ambiguity level
         for i = 1:length(ambig)
             for j = 1:length(valueP)
@@ -257,7 +257,7 @@ for subj_idx = 1:length(subjects)
 
         % Create riskyChoicesP
         % Risk levels by payoff values
-        valueP = unique(values(ambigs == 0));
+        valueP = unique(values_all(ambigs_all == 0 & values_all ~= 4));
         riskyChoicesP = zeros(length(prob), length(valueP));
         for i = 1:length(prob)
             for j = 1:length(valueP)
@@ -432,7 +432,7 @@ for subj_idx = 1:length(subjects)
                 Data.day1.riskyChoices_byLevel= riskyChoices_byLevel;
                 Data.day1.ambigChoices_byLevel=ambigChoices_byLevel;
 
-            elseif day ==2
+            elseif day == 2
                 
                 Data.day2.riskyChoices = riskyChoicesP;
                 Data.day2.ambigChoices = ambigChoicesP;
@@ -483,11 +483,12 @@ for subj_idx = 1:length(subjects)
             end
 
             Data.riskyChoices_byLevel= riskyChoices_byLevel;
-            Data.ambigChoices_byLevel=ambigChoices_byLevel;      
+            Data.ambigChoices_byLevel=ambigChoices_byLevel;  
+
         end
+        save(fullfile(fitpar_out_path, ['RA_' domain '_' num2str(subjectNum) '_fitpar.mat']), 'Data')
   
     end
-    save(fullfile(fitpar_out_path, ['RA_' domain '_' num2str(subjectNum) '_fitpar.mat']), 'Data')
   end
 end
 
