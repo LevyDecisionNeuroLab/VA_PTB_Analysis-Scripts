@@ -33,11 +33,12 @@ exclude = [77 1218];
 % need to do 95, incomplete data
 % 1269 GL/GL
 
-subjects = subjects(~ismember(subjects, exclude));
-% subjects = [1210];
+% subjects = subjects(~ismember(subjects, exclude));
+subjects = [95];
 
 for subj_idx = 1:length(subjects)
-  domains = {'GAINS', 'LOSS'};
+    domains = {'LOSS'};
+    % domains = {'GAINS', 'LOSS'};
 
   for domain_idx = 1:length(domains)
     subjectNum = subjects(subj_idx);
@@ -65,7 +66,12 @@ for subj_idx = 1:length(subjects)
         idx_only4_all = and(Data.choice ~= 0, Data.vals' == 4);
     end
         
-    choice_all = Data.choice;
+    if subjectNum == 95 && strcmp(domain, 'LOSS')
+        choice_all = choiceDone;
+    else
+        choice_all = Data.choice;
+    end
+       
     values_all = Data.vals;
     ambigs_all = Data.ambigs;
     probs_all  = Data.probs;
