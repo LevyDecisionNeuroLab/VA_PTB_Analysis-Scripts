@@ -33,12 +33,13 @@ exclude = [77 1218];
 % need to do 95, incomplete data
 % 1269 GL/GL
 
-% subjects = subjects(~ismember(subjects, exclude));
-subjects = [95];
+subjects = subjects(~ismember(subjects, exclude));
+% subjects = [95];
+idx95 = find(subjects == 95);
 
-for subj_idx = 1:length(subjects)
-    domains = {'LOSS'};
-    % domains = {'GAINS', 'LOSS'};
+for subj_idx = idx95+1:length(subjects)
+%     domains = {'LOSS'};
+    domains = {'GAINS', 'LOSS'};
 
   for domain_idx = 1:length(domains)
     subjectNum = subjects(subj_idx);

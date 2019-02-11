@@ -7,7 +7,7 @@ close all
 
 %Input
 fitparwave = 'Behavior data fitpar_020519';
-outputwave = '_020519';
+outputwave = '_021019';
 isconstrained = 2;
 isdivided = 1; % if fit model to data for each day. 0-fit model on all data, 1-fit model on each day's data should get two values per subject for each parameter
 
