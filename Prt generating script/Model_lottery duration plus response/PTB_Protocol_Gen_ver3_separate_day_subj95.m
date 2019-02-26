@@ -1,4 +1,4 @@
-function PTB_Protocol_Gen_ver3_separate_day(subjectNum, gainsloss, tr, trialduration, DiscAcq, ParametricMod, path_in, path_out, PRT, par)
+function PTB_Protocol_Gen_ver3_separate_day_subj95(subjectNum, gainsloss, tr, trialduration, DiscAcq, ParametricMod, path_in, path_out, PRT, par)
 %PTB_PROTOCOL_GEN Generates PRT Files from Psychtoolbox Data Files
 %
 %INPUTS:
@@ -13,6 +13,7 @@ function PTB_Protocol_Gen_ver3_separate_day(subjectNum, gainsloss, tr, trialdura
 %       PRT - a struct of settings for the PRT file
 %       par - a table containing model fitted parameters, both gains and
 %       losses for a single subject
+
 %
 %OUTPUT: PRT files for given domain in the folder specified by `path_out`
 %
@@ -68,7 +69,7 @@ else
   data = ldata;
 end
 
-% model fitted parameters for calculating subjective value, read from sheet
+% model fitted parameters for calculating subjective value
 alpha_day1 = par.alpha(par.isGain == is_gains & par.isDay1 == 1);
 beta_day1 = par.beta(par.isGain == is_gains & par.isDay1 == 1);
 
@@ -76,7 +77,7 @@ alpha_day2 = par.alpha(par.isGain == is_gains & par.isDay1 == 0);
 beta_day2 = par.beta(par.isGain == is_gains & par.isDay1 == 0);
 
 %% Get correct block order
-block_order = getBlockOrder(is_gains, gdata, ldata);
+block_order = getBlockOrder_subj95(is_gains, gdata, ldata);
 
 %% Get the day index for each trial
 % get the date for each trial
@@ -100,8 +101,7 @@ for trial_idx = 1:length(data.choice)
 end
 
 %% Compute subjective value of each choice
-% Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
-% separate day1 and day2
+% Use the constrained fitting.
 for reps = 1:length(data.choice)
     if trial_isDay1(reps) == 1
           sv(reps, 1) = ambig_utility(0, ...
@@ -119,9 +119,10 @@ for reps = 1:length(data.choice)
               alpha_day2, ...
               beta_day2, ...
               'ambigNrisk');
-    end
-        
+    end        
 end
+
+
 
 % Side with lottery is counterbalanced across subjects 
 % -> code 0 as reference choice, 1 as lottery choice
@@ -152,6 +153,7 @@ if ~is_gains
 
 end
 
+
 % calculate the chosen subjective value (CV) for each trial
 cv = sv;
 cv(choice == 0 & trial_isDay1 == 1) = sv_fixed_day1;
@@ -159,17 +161,20 @@ cv(choice == 0 & trial_isDay1 == 0) = sv_fixed_day2;
 cv(isnan(choice)) = NaN;
 
 %% Load onset times
-gon = PTB_Protocol_OnsetExtract(gdata);
-lon = PTB_Protocol_OnsetExtract(ldata);
+gon = PTB_Protocol_OnsetExtract_subj95(gdata);
+lon = PTB_Protocol_OnsetExtract_subj95(ldata);
 
 % Extract per-block time info from returned argument
 gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
-lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+lonsets = {lon.b1, lon.b2};
 
 %% Iterate over blocks in domain
 % NOTE: 4 is magic number, since currently each domain has exactly 4 blocks
 for blocknum = 1:4
-  %% Select onset/offset time block to use
+  if (blocknum == 3 || blocknum ==4) && ~is_gains  
+     continue % skip the for loop
+  end
+    %% Select onset/offset time block to use
   if is_gains
     prtblock = gonsets{blocknum};
   else
@@ -194,7 +199,7 @@ for blocknum = 1:4
     block_alevel = data.ambigs(current_block_range);
     block_sv = sv(current_block_range);
     block_cv = cv(current_block_range);
-
+    
     if ~is_gains
       block_amt = -1 * block_amt;
     end
@@ -222,7 +227,7 @@ for blocknum = 1:4
       block_risk = [block_risk block_sv(risk_index)];
     elseif strcmp(ParametricMod, 'CV')
       block_amb = [block_amb block_cv(amb_index)];
-      block_risk = [block_risk block_cv(risk_index)]; 
+      block_risk = [block_risk block_cv(risk_index)];       
     end
   end
 

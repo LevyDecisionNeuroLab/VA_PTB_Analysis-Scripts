@@ -8,10 +8,7 @@ prtwave = 'Prt files_022519';
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
 % prtwave = ['Prt files_' filefolders{2}];
 
-% Exclude subjects with bad imaging data
-exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
 % subject 95 has incomplete data
-% subejct 1269 GL/GL
 
 %% Setup and settings
 root = 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan';
@@ -40,7 +37,7 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % NOTE: For more parameters, PTB_Protocol_Gen must be edited to (a) accept them, (b) calculate them
 % ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
-ParametricModType = {'SV'};
+ParametricModType = {'SV'}; 
 % ParametricModType = {'CV'};
 
 % % Instead use input dialog
@@ -49,20 +46,7 @@ ParametricModType = {'SV'};
 % NumParametricWeights is set by the script, depending on which ParametricModType is passed
 
 % Get all subjects
-% NOTE: Assuming that all subjects with gains files also have loss files
-subj_files = dir([fullfile(path_in), filesep, 'RA_GAINS*fitpar.mat']);
-SubjectNums = zeros(1, length(subj_files));
-
-% Extract subject from filename
-for file_idx = 1:length(subj_files)
-  fname = subj_files(file_idx).name;
-  matches = regexp(fname, 'RA_(?<domain>GAINS|LOSS)_(?<subjectNum>[\d]{1,4})', 'names');
-  SubjectNums(file_idx) = str2num(matches.subjectNum); 
-end
-
-SubjectNums = SubjectNums(~ismember(SubjectNums, exclude));
-
-% SubjectNums = [75];
+SubjectNums = [95];
 
 gainsloss = {'gains', 'loss'}; % 'gains', 'loss', or both
 
@@ -98,7 +82,7 @@ for i = 1:length(SubjectNums)
             else
                 PRT.NrOfConditions =      '7';
             end
-            PTB_Protocol_Gen_ver3_separate_day(SubjectNums(i), gainsloss{j}, ...
+            PTB_Protocol_Gen_ver3_separate_day_subj95(SubjectNums(i), gainsloss{j}, ...
                 tr, trialduration, DiscardedAcquisition, ...
                 ParametricModType{k}, ...
                 path_in, path_out, PRT, par(par.id == SubjectNums(i),:))
