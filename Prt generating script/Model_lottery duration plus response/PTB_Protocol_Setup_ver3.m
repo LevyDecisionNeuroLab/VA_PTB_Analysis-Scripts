@@ -2,7 +2,7 @@ clearvars
 close all
 %% Input
 fitparwave = 'Behavior data fitpar_03280218';
-prtwave = 'Prt files_092718';
+prtwave = 'Prt files_03082019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
@@ -41,7 +41,8 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'SV'};
-ParametricModType = {'CV'};
+% ParametricModType = {'CV'};
+ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel'};
 
 % % Instead use input dialog
 % param = inputdlg({'Enter Parametric Modulator name'}, 'Parametric Modulator');

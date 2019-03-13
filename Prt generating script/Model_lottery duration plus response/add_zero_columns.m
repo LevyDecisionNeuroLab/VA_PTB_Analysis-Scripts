@@ -3,7 +3,7 @@
 %   of predictor colors will automatically match the new SDMMatrix.
 clearvars
 %% 
-sdmwave = 'Sdm files_042418';
+sdmwave = 'Sdm files_03082019';
 predictorNums = 10; % the correct number of predictors
 PredictorNames_new = {'Amb_gains_Display', 'Amb_gains_Display x p1', 'Risk_gains_Display', 'Risk_gains_Display x p1',...
                       'Amb_loss_Display', 'Amb_loss_Display x p1', 'Risk_loss_Display', 'Risk_loss_Display x p1', 'Resp', 'Constant'};
