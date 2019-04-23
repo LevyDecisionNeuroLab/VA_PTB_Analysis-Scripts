@@ -22,7 +22,8 @@ data_path = fullfile(root, 'Behavior data of PTB log/'); % Original log from PTB
 subjects = getSubjectsInDir(data_path, 'subj'); %function
 
 % Exclude subjects with bad imaging data
-exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
+% exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
+exclude =[77 1218];
 
 subjects = subjects(~ismember(subjects, exclude));
 
