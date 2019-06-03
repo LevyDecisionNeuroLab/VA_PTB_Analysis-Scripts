@@ -1,15 +1,15 @@
 clearvars
 close all
 %% Input
-fitparwave = 'Behavior data fitpar_03280218';
-prtwave = 'Prt files_03082019';
+fitparwave = 'Behavior data fitpar_020519';
+prtwave = 'Prt files_05312019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
 % prtwave = ['Prt files_' filefolders{2}];
 
 % Exclude subjects with bad imaging data
-exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
+exclude = [61 76 78 79 80 81 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
 % subject 95 has incomplete data
 % subejct 1269 GL/GL
 
@@ -42,7 +42,8 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'SV'};
 % ParametricModType = {'CV'};
-ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel'};
+% ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel'};
+ParametricModType = {'none'};
 
 % % Instead use input dialog
 % param = inputdlg({'Enter Parametric Modulator name'}, 'Parametric Modulator');

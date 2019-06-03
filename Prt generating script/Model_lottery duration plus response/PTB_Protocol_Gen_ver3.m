@@ -72,9 +72,6 @@ end
 alpha = par.alpha(par.isGain == is_gains);
 beta = par.beta(par.isGain == is_gains);
 
-%% Get correct block order
-block_order = getBlockOrder(is_gains, gdata, ldata);
-
 %% Compute subjective value of each choice
 % Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
 for reps = 1:length(data.choice)
@@ -118,17 +115,33 @@ cv = sv;
 cv(choice == 0) = sv_fixed;
 cv(isnan(choice)) = NaN;
 
-%% Load onset times
-gon = PTB_Protocol_OnsetExtract(gdata);
-lon = PTB_Protocol_OnsetExtract(ldata);
+%% Get correct block order
+if subjectNum ~= 95
+    block_order = getBlockOrder(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract(gdata);
+    lon = PTB_Protocol_OnsetExtract(ldata);
 
-% Extract per-block time info from returned argument
-gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
-lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+else
+    block_order = getBlockOrder_subj95(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract_subj95(gdata);
+    lon = PTB_Protocol_OnsetExtract_subj95(ldata);
+    
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2};
+end
 
 %% Iterate over blocks in domain
 % NOTE: 4 is magic number, since currently each domain has exactly 4 blocks
 for blocknum = 1:4
+  if subjectNum == 95 && (blocknum == 3 || blocknum ==4) && ~is_gains  
+     continue % skip the for loop
+  end    
   %% Select onset/offset time block to use
   if is_gains
     prtblock = gonsets{blocknum};
