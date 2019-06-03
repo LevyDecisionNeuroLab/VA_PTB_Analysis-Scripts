@@ -177,7 +177,10 @@ for blocknum = 1:4
   % Store the basic onset/offset, computed earlier
   block_amb = [onsets(amb_index,1) offsets(amb_index,1)];
   block_risk = [onsets(risk_index,1) offsets(risk_index,1)];
-  resp = [onsets(:,2) offsets(:,2)]; % response for all trials
+  
+  block_choice = choice(current_block_range)';
+  
+  resp = [offsets(~isnan(block_choice),2) offsets(~isnan(block_choice),2)]; % response for all trials with response
 
   % Add the selected parametric value if required
   if NumParametricWeights > 0

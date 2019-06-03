@@ -2,7 +2,7 @@ clearvars
 close all
 %% Input
 fitparwave = 'Behavior data fitpar_020519';
-prtwave = 'Prt files_05312019';
+prtwave = 'Prt files_06042019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
