@@ -2,7 +2,7 @@ clearvars
 close all
 %% Input
 fitparwave = 'Behavior data fitpar_020519';
-prtwave = 'Prt files_06052019';
+prtwave = 'Prt files_06062019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
@@ -43,7 +43,7 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % ParametricModType = {'SV'};
 % ParametricModType = {'CV'};
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel'};
-ParametricModType = {'resp_cond'};
+ParametricModType = {'SV_choice'};
 
 % % Instead use input dialog
 % param = inputdlg({'Enter Parametric Modulator name'}, 'Parametric Modulator');
@@ -81,28 +81,24 @@ PRT.TimeCourseThick =     '2';
 PRT.ReferenceFuncColor =  '30 200 30';
 PRT.ReferenceFuncThick =  '2';
 
-PRT.ColorAmb_Loss =       '0 0 77';
-PRT.ColorRisk_Loss =      '140 0 0';
-PRT.ColorAmb_Gains =      '0 0 255';
-PRT.ColorRisk_Gains =     '255 0 0';
+PRT.Color_Disp_Ref_gains =       '140 120 0';
+PRT.Color_Disp_Lott_gains =      '140 0 0';
+PRT.Color_Resp_Ref_gains =   '140 120 80';
+PRT.Color_Resp_Lott_gains =   '140 0 80';
 
-PRT.ColorAL_Resp_Ref =   '0 120 77';
-PRT.ColorRL_Resp_Ref =   '140 120 0';
-PRT.ColorAG_Resp_Ref =   '0 120 255';
-PRT.ColorRG_Resp_Ref =   '255 120 0';
-
-PRT.ColorAL_Resp_Lott =   '0 200 77';
-PRT.ColorRL_Resp_Lott =   '140 200 0';
-PRT.ColorAG_Resp_Lott =   '0 200 255';
-PRT.ColorRG_Resp_Lott =   '255 200 0';
+PRT.Color_Disp_Ref_loss =       '0 120 77';
+PRT.Color_Disp_Lott_loss =      '0 0 77';
+PRT.Color_Resp_Ref_loss =   '20 120 77';
+PRT.Color_Resp_Lott_loss =   '50 120 77';
 %% Run for all of the above
 % Iterate for each subject, each domain (each _fitpar data file because loss and gains are separate)
 for i = 1:length(SubjectNums)
     for j = 1:length(gainsloss)
         for k = 1:length(ParametricModType)
-            % for non parametric design matrices, 4 lottery duration + 4 responses
-            if strcmp(ParametricModType{k}, 'none_bychoice')
-                PRT.NrOfConditions =      '12';
+            % for non parametric design matrices, 2 lottery duration + 2
+            % responses +6 for the empty condition
+            if strcmp(ParametricModType{k}, 'SV_choice')
+                PRT.NrOfConditions =      '10';
             end
             PTB_Protocol_Gen_ver3_dispbychoice(SubjectNums(i), gainsloss{j}, ...
                 tr, trialduration, DiscardedAcquisition, ...

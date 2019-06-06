@@ -27,17 +27,18 @@ if (~is_gains && ~strcmp(gainsloss, 'loss'))
   return
 end
 
-NumParametricWeights = 0;
+NumParametricWeights = 1;
 
 PRT.ParametricWeights = num2str(NumParametricWeights);
 
 % For PRT properties, fix colors into correct order
+% For PRT properties, fix colors into correct order
 if ~is_gains
-  Colors = {PRT.ColorAmb_Loss, PRT.ColorAL_Resp_Lott, PRT.ColorAL_Resp_Ref, PRT.ColorRisk_Loss, PRT.ColorRL_Resp_Lott, PRT.ColorRL_Resp_Ref};
-  alt_colors = {PRT.ColorAmb_Gains, PRT.ColorAG_Resp_Lott, PRT.ColorAG_Resp_Ref, PRT.ColorRisk_Gains, PRT.ColorRG_Resp_Lott, PRT.ColorRG_Resp_Ref};
+  Colors = {PRT.Color_Disp_Lott_loss, PRT.Color_Disp_Ref_loss, PRT.Color_Resp_Lott_loss, PRT.Color_Resp_Ref_loss};
+  alt_colors = {PRT.Color_Disp_Lott_gains, PRT.Color_Disp_Ref_gains, PRT.Color_Resp_Lott_gains, PRT.Color_Resp_Ref_gains};
 else
-  Colors = {PRT.ColorAmb_Gains, PRT.ColorAG_Resp_Lott, PRT.ColorAG_Resp_Ref, PRT.ColorRisk_Gains, PRT.ColorRG_Resp_Lott, PRT.ColorRG_Resp_Ref};
-  alt_colors = {PRT.ColorAmb_Loss, PRT.ColorAL_Resp_Lott, PRT.ColorAL_Resp_Ref, PRT.ColorRisk_Loss, PRT.ColorRL_Resp_Lott, PRT.ColorRL_Resp_Ref};
+  Colors = {PRT.Color_Disp_Lott_gains, PRT.Color_Disp_Ref_gains, PRT.Color_Resp_Lott_gains, PRT.Color_Resp_Ref_gains};
+  alt_colors = {PRT.Color_Disp_Lott_loss, PRT.Color_Disp_Ref_loss, PRT.Color_Resp_Lott_loss, PRT.Color_Resp_Ref_loss};
 end
 
 %% Load Gains and Loss Data files
@@ -58,6 +59,28 @@ else
   data = ldata;
 end
 
+%% Compute subjective value of each choice
+% model fitted parameters for calculating subjective value
+alpha = par.alpha(par.isGain == is_gains);
+beta = par.beta(par.isGain == is_gains);
+
+% Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
+for reps = 1:length(data.choice)
+  sv(reps, 1) = ambig_utility(0, ...
+      data.vals(reps), ...
+      data.probs(reps), ...
+      data.ambigs(reps), ...
+      alpha, ...
+      beta, ...
+      'ambigNrisk');
+end
+
+% Side with lottery is counterbalanced across subjects 
+% -> code 0 as reference choice, 1 as lottery choice
+% TODO: Double-check this is so? - This is true(RJ)
+% TODO: Save in a different variable?
+% if sum(choice == 2) > 0 % Only if choice has not been recoded yet. RJ-Not necessary
+% RJ-If subject do not press 2 at all, the above if condition is problematic
 choice = data.choice;
 choice(choice==0) = NaN;
 
@@ -68,6 +91,20 @@ elseif data.refSide == 1 % Careful: rerunning this part will make all choices 0
   choice(choice == 1) = 0;
   choice(choice == 2) = 1;
 end
+
+% calculate the subjective value for the fixed $5
+sv_fixed = ambig_utility(0,5,1,0,alpha,beta,'ambigNrisk');
+
+% Flip sign, since the data files store only value magnitudes 
+if ~is_gains
+  sv(:, 1) = -1 * sv(:, 1);
+  sv_fixed = -sv_fixed;
+end
+
+% calculate the chosen subjective value (CV) for each trial
+cv = sv;
+cv(choice == 0) = sv_fixed;
+cv(isnan(choice)) = NaN;
 
 %% Get correct block order
 if subjectNum ~= 95
@@ -110,23 +147,39 @@ for blocknum = 1:4
   % Get indices for risk trials and ambiguity trials (30 values, regularly spaced)
   current_block_range = (2:31) + (blocknum - 1) * 31;
 
-  % Divide blocks by type of lottery (store indices with risk-only vs. risk-and-ambiguity)
-  amb_index = data.ambigs(current_block_range) > 0;
-  risk_index = data.ambigs(current_block_range) == 0;
+  % Parametric weights for current block
+  if NumParametricWeights > 0
+    block_amt = data.vals(current_block_range);
+    block_rlevel = data.probs(current_block_range);
+    block_alevel = data.ambigs(current_block_range);
+    block_sv = sv(current_block_range);
+    block_cv = cv(current_block_range);
+
+    if ~is_gains
+      block_amt = -1 * block_amt;
+    end
+  end
 
   %% Select what parametric value to write (or not write) into PRT file
   % Store the basic onset/offset, computed earlier
-  block_amb = [onsets(amb_index,1) offsets(amb_index,1)];
-  block_risk = [onsets(risk_index,1) offsets(risk_index,1)];
-  
+    
   block_choice = choice(current_block_range)';
+  lott_index = block_choice == 1;
+  ref_index = block_choice == 0;
   
   % onset and off set for choice
-  resp_amb_ref = [offsets(amb_index & block_choice == 0, 2) offsets(amb_index & block_choice == 0, 2)]; % response for specific trials
-  resp_amb_lott = [offsets(amb_index & block_choice == 1, 2) offsets(amb_index & block_choice == 1, 2)];
-  resp_risk_ref = [offsets(risk_index & block_choice == 0, 2) offsets(risk_index & block_choice == 0, 2)];
-  resp_risk_lott = [offsets(risk_index & block_choice == 1, 2) offsets(risk_index & block_choice == 1, 2)];
+  disp_lott = [onsets(lott_index, 1) offsets(lott_index, 1)]; 
+  disp_ref = [onsets(ref_index, 1) offsets(ref_index, 1)];
+  resp_lott = [offsets(lott_index, 2) offsets(lott_index, 2)];
+  resp_ref = [offsets(ref_index, 2) offsets(ref_index, 2)];
   
+  % Add the selected parametric value if required
+  if NumParametricWeights > 0
+    if strcmp(ParametricMod, 'SV_choice')
+      disp_lott = [disp_lott block_sv(lott_index)];
+      disp_ref= [disp_ref block_sv(ref_index)];
+    end
+  end  
   %% Write file to txt
   
   % Determine session for filename
@@ -161,64 +214,62 @@ for blocknum = 1:4
   fprintf(fileID, '\r\n%15s %7s\r\n\r\n', 'NrOfConditions:', PRT.NrOfConditions);
 
   if ~is_gains
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_gains_Display', '0', 'Color:', alt_colors{1});
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_gains_Resp_lott', '0', 'Color:', alt_colors{2});
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_gains_Resp_ref', '0', 'Color:', alt_colors{3});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_gains_Display', '0', 'Color:', alt_colors{4});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_gains_Resp_lott', '0', 'Color:', alt_colors{5});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_gains_Resp_ref', '0', 'Color:', alt_colors{6});
+    fprintf(fileID, '%8s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Lott_gains', '0', 'Color:', alt_colors{1});
+    fprintf(fileID, '%13s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Lott_gains x p1', '0', 'Color:', '0 0 0');
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Ref_gains', '0', 'Color:', alt_colors{2});
+    fprintf(fileID, '%14s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Ref_gains x p1', '0', 'Color:', '0 0 0');
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Resp_Lott_gains', '0', 'Color:', alt_colors{3});
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Resp_Ref_gains', '0', 'Color:', alt_colors{4});
   end
   
-  % Print the ambiguity block for given domain
-  fprintf(fileID, '%7s\r\n', ['Amb_' gainsloss '_Display']);
-  fprintf(fileID, '%4s\r\n', num2str(size(block_amb,1)));
-  fprintf(fileID, '%4.0f\t %3.0f\r\n', block_amb');
-  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{1});  
-  
-  fprintf(fileID, '%7s\r\n', ['Amb_' gainsloss '_Resp_lott']);
-  fprintf(fileID, '%4s\r\n', num2str(size(resp_amb_lott,1)));
-  if size(resp_amb_lott,1) > 0
-    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_amb_lott');
+  % Print display lottery
+  fprintf(fileID, '%9s\r\n', ['Disp_Lott_' gainsloss]);
+  fprintf(fileID, '%4s\r\n', num2str(size(disp_lott,1)));
+  if size(disp_lott,1) > 0
+    fprintf(fileID, '%4.0f\t %3.0f\t %1.3f\r\n', disp_lott'); 
   end
-  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{2});  
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{1}); 
   
-  fprintf(fileID, '%7s\r\n', ['Amb_' gainsloss '_Resp_ref']);
-  fprintf(fileID, '%4s\r\n', num2str(size(resp_amb_ref,1)));
-  if size(resp_amb_ref,1) > 0
-    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_amb_ref');
+  if size(disp_lott,1) == 0
+      fprintf(fileID, '%13s\r\n%3s\r\n%4s %6s\r\n\r\n', ['Disp_Lott_' gainsloss ' x p1'], '0', 'Color:', '0 0 0');
+  end
+  
+  % print display reference
+  fprintf(fileID, '%8s\r\n', ['Disp_Ref_' gainsloss]);
+  fprintf(fileID, '%4s\r\n', num2str(size(disp_ref,1)));
+  if size(disp_ref,1) > 0
+    fprintf(fileID, '%4.0f\t %3.0f\t %1.3f\r\n', disp_ref'); 
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{2});
+
+  if size(disp_ref,1) == 0
+      fprintf(fileID, '%13s\r\n%3s\r\n%4s %6s\r\n\r\n', ['Disp_Ref_' gainsloss ' x p1'], '0', 'Color:', '0 0 0');
+  end
+  
+  % print response lottery
+  fprintf(fileID, '%9s\r\n', ['Resp_Lott_' gainsloss]);
+  fprintf(fileID, '%4s\r\n', num2str(size(resp_lott,1)));
+  if size(resp_lott,1) > 0
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_lott'); 
   end
   fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{3});
   
-  
-  % Print the risk block for given domain
-  fprintf(fileID, '%7s\r\n', ['Risk_' gainsloss '_Display']);
-  fprintf(fileID, '%4s\r\n', num2str(size(block_risk,1)));
-  fprintf(fileID, '%4.0f\t %3.0f\r\n', block_risk');
-  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{4});  
-  
-  fprintf(fileID, '%7s\r\n', ['Risk_' gainsloss '_Resp_lott']);
-  fprintf(fileID, '%4s\r\n', num2str(size(resp_risk_lott,1)));
-  if size(resp_risk_lott,1) > 0
-    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_risk_lott');
+  % print response reference
+  fprintf(fileID, '%8s\r\n', ['Resp_Ref_' gainsloss]);
+  fprintf(fileID, '%4s\r\n', num2str(size(resp_ref,1)));
+  if size(resp_ref,1) > 0
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_ref'); 
   end
-  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{5});  
-  
-  fprintf(fileID, '%7s\r\n', ['Risk_' gainsloss '_Resp_ref']);
-  fprintf(fileID, '%4s\r\n', num2str(size(resp_risk_ref,1)));
-  if size(resp_risk_ref,1) > 0
-    fprintf(fileID, '%4.0f\t %3.0f\r\n', resp_risk_ref');
-  end
-  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{6});  
-  
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{4});
   
   if is_gains
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_loss_Display', '0', 'Color:', alt_colors{1});
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_loss_Resp_lott', '0', 'Color:', alt_colors{2});
-    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Amb_loss_Resp_ref', '0', 'Color:', alt_colors{3});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_loss_Display', '0', 'Color:', alt_colors{4});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_loss_Resp_lott', '0', 'Color:', alt_colors{5});
-    fprintf(fileID, '%10s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Risk_loss_Resp_ref', '0', 'Color:', alt_colors{6});
-  end
+    fprintf(fileID, '%8s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Lott_loss', '0', 'Color:', alt_colors{1});
+    fprintf(fileID, '%13s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Lott_loss x p1', '0', 'Color:', '0 0 0');
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Ref_loss', '0', 'Color:', alt_colors{2});
+    fprintf(fileID, '%14s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Disp_Ref_loss x p1', '0', 'Color:', '0 0 0');
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Resp_Lott_loss', '0', 'Color:', alt_colors{3});
+    fprintf(fileID, '%9s\r\n%3s\r\n%4s %6s\r\n\r\n', 'Resp_Ref_loss', '0', 'Color:', alt_colors{4});
+  end    
 
   fclose(fileID);
 end
