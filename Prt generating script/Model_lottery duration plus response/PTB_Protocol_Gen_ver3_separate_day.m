@@ -158,17 +158,33 @@ cv(choice == 0 & trial_isDay1 == 1) = sv_fixed_day1;
 cv(choice == 0 & trial_isDay1 == 0) = sv_fixed_day2;
 cv(isnan(choice)) = NaN;
 
-%% Load onset times
-gon = PTB_Protocol_OnsetExtract(gdata);
-lon = PTB_Protocol_OnsetExtract(ldata);
+%% Get correct block order
+if subjectNum ~= 95
+    block_order = getBlockOrder(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract(gdata);
+    lon = PTB_Protocol_OnsetExtract(ldata);
 
-% Extract per-block time info from returned argument
-gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
-lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+else
+    block_order = getBlockOrder_subj95(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract_subj95(gdata);
+    lon = PTB_Protocol_OnsetExtract_subj95(ldata);
+    
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2};
+end
 
 %% Iterate over blocks in domain
 % NOTE: 4 is magic number, since currently each domain has exactly 4 blocks
 for blocknum = 1:4
+  if subjectNum == 95 && (blocknum == 3 || blocknum ==4) && ~is_gains  
+     continue % skip the for loop
+  end    
   %% Select onset/offset time block to use
   if is_gains
     prtblock = gonsets{blocknum};
@@ -204,7 +220,11 @@ for blocknum = 1:4
   % Store the basic onset/offset, computed earlier
   block_amb = [onsets(amb_index,1) offsets(amb_index,1)];
   block_risk = [onsets(risk_index,1) offsets(risk_index,1)];
-  resp = [onsets(:,2) offsets(:,2)]; % response for all trials
+  
+  block_choice = choice(current_block_range)';
+  
+  resp = [offsets(~isnan(block_choice),2) offsets(~isnan(block_choice),2)]; % response for all trials with response
+
 
   % Add the selected parametric value if required
   if NumParametricWeights > 0
