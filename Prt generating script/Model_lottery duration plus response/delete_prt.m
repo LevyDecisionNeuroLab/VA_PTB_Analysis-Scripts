@@ -4,7 +4,7 @@ clearvars
 close all
 
 %% prt file path
-prtwave = 'Prt files_06032019';
+prtwave = 'Prt files_06072019';
 root = 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan';
 
 prt_path = fullfile(root, 'Prt files', prtwave, filesep);

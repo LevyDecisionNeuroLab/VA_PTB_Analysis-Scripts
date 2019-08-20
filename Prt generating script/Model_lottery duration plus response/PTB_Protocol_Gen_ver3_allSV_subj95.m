@@ -28,7 +28,7 @@ if (~is_gains && ~strcmp(gainsloss, 'loss'))
 end
 
 % Set NumParametricWeights on the basis of ParametricMod
-permissible_parameters = {'allSV', 'allCV'};
+permissible_parameters = {'allSV', 'allSV_Sal', 'allCV'};
 if sum(strcmp(ParametricMod, permissible_parameters)) 
   % using sum because strcmp returns a matrix of logicals if string is compared 
   % with an array of strings
@@ -224,7 +224,16 @@ for blocknum = 1:4
 %     end
 %   end
 
-  block_all = [block_all block_sv];
+
+   if strcmp(ParametricMod, 'allSV_Sal')
+      if is_gains
+        block_all = [block_all block_sv];
+      elseif ~is_gains
+        block_all = [block_all -block_sv];  
+      end
+   elseif strcmp(ParametricMod, 'allSV')
+      block_all = [block_all block_sv];  
+   end
   %% Write file to txt
   
   % Determine session for filename

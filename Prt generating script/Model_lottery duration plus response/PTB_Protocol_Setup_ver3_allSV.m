@@ -2,7 +2,7 @@ clearvars
 close all
 %% Input
 fitparwave = 'Behavior data fitpar_020519';
-prtwave = 'Prt files_052919';
+prtwave = 'Prt files_053019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
@@ -40,7 +40,8 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % NOTE: For more parameters, PTB_Protocol_Gen must be edited to (a) accept them, (b) calculate them
 % ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
-ParametricModType = {'allSV'};
+% ParametricModType = {'allSV'};
+ParametricModType = {'allSV_Sal'}; % saliency
 % ParametricModType = {'uniCV'};
 
 % % Instead use input dialog

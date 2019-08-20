@@ -7,8 +7,8 @@
 clearvars
 
 %% Load + save settings
-prtwave = 'Prt files_03082019';
-sdmwave = 'Sdm files_03082019';
+prtwave = 'Prt files_06072019';
+sdmwave = 'Sdm files_06072019';
 
 root_path = 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan';
 prt_loc = [root_path filesep 'Prt files' filesep prtwave filesep];
