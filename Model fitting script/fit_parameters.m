@@ -5,11 +5,11 @@ clearvars
 close all
 
 %% Input set up
-fitparwave = 'Behavior data fitpar_031319';
+fitparwave = 'Behavior data fitpar_08150219';
 search = 'grid'; % which method for searching optimal parameters
 model = 'ambigNrisk'; % which utility function
 isconstrained = 1; % if use constrained fitting. 0-unconstrained, 1-constrained, 2-both
-isdivided = 0; % if fit model to data for each day. 0-fit model on all data, 1-fit model on each day's data should get two values per subject for each parameter
+isdivided = 1; % if fit model to data for each day. 0-fit model on all data, 1-fit model on each day's data should get two values per subject for each parameter
 
 %% Set up loading + subject selection
 % TODO: Maybe grab & save condition somewhere?
@@ -36,15 +36,17 @@ exclude = [77 1218];
 subjects = subjects(~ismember(subjects, exclude));
 % subjects = [95];
 % idx95 = find(subjects == 95);
+subjects = subjects(60:length(subjects));
 
 % for refitting the subjects needing constraints
-subjects = [3, 1210, 1220, 1272, 1301, 1357, 1360, 1269, 1337, 1347, 1354];
+% subjects = [3 120 1210 1220 1272 1301 1357 1360 1269 1337 1347 1354];
+subjects = [3	38	56	81	101	108	1005	1074	1210	1220	1237	1269	1272	1300	1303	1326	1337	1338	1346	1347	1354	1357	1360];
 
-% pooljob = parpool('local', 4)
+% poolobj = parpool('local', 8);
 
 tic
 
-for subj_idx = 1:length(subjects)
+parfor subj_idx = 1:length(subjects)
 %     domains = {'LOSS'};
     domains = {'GAINS', 'LOSS'};
 
@@ -55,9 +57,7 @@ for subj_idx = 1:length(subjects)
 %     subjectNum = 1210;
 %     domain = 'GAINS';
 
-
-    fname = sprintf('RA_%s_%d.mat', domain, subjectNum);
-    load(fname) % produces variable `Data`
+    Data = load_mat(subjectNum, domain);
     
     %% Refine variables
 
@@ -283,7 +283,9 @@ for subj_idx = 1:length(subjects)
                 end
             end
         end
-
+        
+        riskyChoices_byLevel = zeros(1, length(prob));
+        ambigChoices_byLevel = zeros(1, length(ambig));
         % Creat risky/ambig choiecs by level (nonparametric), excluding the value 5
         for i=1:length(prob)
             riskyChoices_byLevel(1,i) = nanmean(riskyChoicesP(i,2:length(riskyChoicesP)));
@@ -499,8 +501,9 @@ for subj_idx = 1:length(subjects)
             Data.riskyChoices_byLevel= riskyChoices_byLevel;
             Data.ambigChoices_byLevel=ambigChoices_byLevel;  
 
-        end
-        save(fullfile(fitpar_out_path, ['RA_' domain '_' num2str(subjectNum) '_fitpar.mat']), 'Data')
+        end        
+        
+        save_mat(Data, subjectNum, domain, fitpar_out_path);
   
     end
   end
@@ -508,8 +511,4 @@ end
 
 toc
 
-% delete(pooljob)
-
-
-
-
+% delete(poolobj)
