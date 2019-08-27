@@ -10,6 +10,7 @@ elseif strcmp(model,'discounting')
     y = v ./ (1 + alpha.*(1-p+beta.*AL./2)./(p-beta.*AL./2));
     %y = v ./ (1 + alpha.*(1-p)./p);
 elseif strcmp(model,'risk')
+    v(AL ~= 0) = NaN;
     y = p .* v .^alpha;
 end
 
