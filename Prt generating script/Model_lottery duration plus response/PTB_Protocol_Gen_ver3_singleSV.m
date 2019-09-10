@@ -102,6 +102,18 @@ end
 %% Compute subjective value of each choice
 % Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
 % separate day1 and day2
+% for subjects who did not have beta
+model_day1 = 'ambigNrisk';
+model_day2 = 'ambigNrisk';
+
+if ~isnan(alpha_day1) && isnan(beta_day1)
+    model_day1 = 'risk';
+end
+
+if ~isnan(alpha_day2) && isnan(beta_day2)
+    model_day2 = 'risk';
+end
+
 for reps = 1:length(data.choice)
     if trial_isDay1(reps) == 1
           sv(reps, 1) = ambig_utility(0, ...
@@ -110,7 +122,7 @@ for reps = 1:length(data.choice)
               data.ambigs(reps), ...
               alpha_day1, ...
               beta_day1, ...
-              'ambigNrisk');
+              model_day1);
     else
           sv(reps, 1) = ambig_utility(0, ...
               data.vals(reps), ...
@@ -118,7 +130,7 @@ for reps = 1:length(data.choice)
               data.ambigs(reps), ...
               alpha_day2, ...
               beta_day2, ...
-              'ambigNrisk');
+              model_day2);
     end
         
 end
@@ -141,8 +153,8 @@ elseif data.refSide == 1 % Careful: rerunning this part will make all choices 0
 end
 
 % calculate the subjective value for the fixed $5
-sv_fixed_day1 = ambig_utility(0,5,1,0,alpha_day1,beta_day1,'ambigNrisk');
-sv_fixed_day2 = ambig_utility(0,5,1,0,alpha_day2,beta_day2,'ambigNrisk');
+sv_fixed_day1 = ambig_utility(0,5,1,0,alpha_day1,beta_day1,'risk');
+sv_fixed_day2 = ambig_utility(0,5,1,0,alpha_day2,beta_day2,'risk');
 
 % Flip sign, since the data files store only value magnitudes 
 if ~is_gains
@@ -154,9 +166,9 @@ end
 
 % calculate the chosen subjective value (CV) for each trial
 cv = sv;
-cv(choice == 0 & trial_isDay1 == 1) = sv_fixed_day1;
-cv(choice == 0 & trial_isDay1 == 0) = sv_fixed_day2;
-cv(isnan(choice)) = NaN;
+cv(choice' == 0 & trial_isDay1 == 1) = sv_fixed_day1;
+cv(choice' == 0 & trial_isDay1 == 0) = sv_fixed_day2;
+cv(isnan(choice')) = NaN;
 
 %% Load onset times
 gon = PTB_Protocol_OnsetExtract(gdata);
@@ -204,7 +216,11 @@ for blocknum = 1:4
   % Store the basic onset/offset, computed earlier
   block_amb = [onsets(amb_index,1) offsets(amb_index,1)];
   block_risk = [onsets(risk_index,1) offsets(risk_index,1)];
-  resp = [onsets(:,2) offsets(:,2)]; % response for all trials
+  
+  block_choice = choice(current_block_range)'; 
+  resp = [offsets(~isnan(block_choice),2) offsets(~isnan(block_choice),2)]; % response for all trials with response
+
+%   resp = [onsets(:,2) offsets(:,2)]; % response for all trials
   block_all = [onsets(:,1) offsets(:,1)]; % onsets for all trials
   
   % Add the selected parametric value if required

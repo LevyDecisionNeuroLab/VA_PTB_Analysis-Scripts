@@ -2,7 +2,7 @@ clearvars
 close all
 %% Input
 fitparwave = 'Behavior data fitpar_020519';
-prtwave = 'Prt files_06072019';
+prtwave = 'Prt files_09100419';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
@@ -29,7 +29,7 @@ end
 % read model fitted attitudes
 % because some subjects used unconstrained, some used constrained, could
 % not easily read from fitpar data structure
-par = readtable('D:\Ruonan\Projects in the lab\VA_RA_PTB\Clinical and behavioral\par nonpar att_allSubj_day1day2_04082019.xlsx');
+par = readtable('D:\Ruonan\Projects in the lab\VA_RA_PTB\Clinical and behavioral\par nonpar att_allSubj_day1day2_08262019.csv');
 
 % Computational parameters
 tr = 1; % Temporal resolution, in seconds
@@ -40,8 +40,8 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % NOTE: For more parameters, PTB_Protocol_Gen must be edited to (a) accept them, (b) calculate them
 % ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
-ParametricModType = {'SV'};
-% ParametricModType = {'CV'};
+% ParametricModType = {'SV'};
+ParametricModType = {'CV'};
 
 % % Instead use input dialog
 % param = inputdlg({'Enter Parametric Modulator name'}, 'Parametric Modulator');
