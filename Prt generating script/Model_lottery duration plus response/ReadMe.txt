@@ -8,6 +8,8 @@ ambig_utility
 -----------------------------------
 Run:
 PTB_Protocol_Setup_ver3
+delete_prt
+(change 75_S1_block4 last response NaN 479)
 prt2sdm
 add_zeros_columns
 maybe: Combine sdm and motion corrections
