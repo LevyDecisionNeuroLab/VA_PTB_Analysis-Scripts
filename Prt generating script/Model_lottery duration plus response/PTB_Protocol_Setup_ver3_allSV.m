@@ -1,8 +1,8 @@
 clearvars
 close all
 %% Input
-fitparwave = 'Behavior data fitpar_020519';
-prtwave = 'Prt files_053019';
+fitparwave = 'Behavior data fitpar_08150119';
+prtwave = 'Prt files_091019';
 % % Instead use input dialog to speficy file folders
 % filefolders = inputdlg({'Fitpar date', 'Prt date'},'Specify file folders');
 % fitparwave = ['Behavior data fitpar_' filefolders{1}];
@@ -10,6 +10,9 @@ prtwave = 'Prt files_053019';
 
 % Exclude subjects with bad imaging data
 exclude = [61 76 78 79 80 81 95 100 101 102 104 117 1210 1220 1234 1235 1250 1251 1268 1269 1272 1289 1300 1301 1303 1308 1316 1326 1337 1347 1357 1360];
+
+% exclude_partial_sub = [87 93 98 122 1072 1074 1208 1216 1232 1245 1278 1285 1290 1304 1305 1338 1345]; 
+% exclude_partial = {[2], [7 8], [6] };
 % subject 95 has incomplete data
 % subejct 1269 GL/GL
 
@@ -29,7 +32,7 @@ end
 % read model fitted attitudes
 % because some subjects used unconstrained, some used constrained, could
 % not easily read from fitpar data structure
-par = readtable('D:\Ruonan\Projects in the lab\VA_RA_PTB\Clinical and behavioral\par nonpar att_allSubj_day1day2_04082019.xlsx');
+par = readtable('D:\Ruonan\Projects in the lab\VA_RA_PTB\Clinical and behavioral\par nonpar att_allSubj_day1day2_08262019.csv');
 
 % Computational parameters
 tr = 1; % Temporal resolution, in seconds
@@ -40,8 +43,8 @@ DiscardedAcquisition = 10; % How many initial volumes we discard, in volumes
 % NOTE: For more parameters, PTB_Protocol_Gen must be edited to (a) accept them, (b) calculate them
 % ParametricModType = {'SV', 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
 % ParametricModType = {'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'none'}; 
-% ParametricModType = {'allSV'};
-ParametricModType = {'allSV_Sal'}; % saliency
+ParametricModType = {'allSV'};
+% ParametricModType = {'allSV_Sal'}; % saliency
 % ParametricModType = {'uniCV'};
 
 % % Instead use input dialog
