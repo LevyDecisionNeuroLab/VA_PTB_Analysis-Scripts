@@ -74,6 +74,12 @@ beta = par.beta(par.isGain == is_gains);
 
 %% Compute subjective value of each choice
 % Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
+model = 'ambigNrisk';
+
+if ~isnan(alpha) && isnan(beta)
+    model = 'risk';
+end
+
 for reps = 1:length(data.choice)
   sv(reps, 1) = ambig_utility(0, ...
       data.vals(reps), ...
@@ -81,7 +87,7 @@ for reps = 1:length(data.choice)
       data.ambigs(reps), ...
       alpha, ...
       beta, ...
-      'ambigNrisk');
+      model);
 end
 
 % Side with lottery is counterbalanced across subjects 
@@ -102,7 +108,7 @@ elseif data.refSide == 1 % Careful: rerunning this part will make all choices 0
 end
 
 % calculate the subjective value for the fixed $5
-sv_fixed = ambig_utility(0,5,1,0,alpha,beta,'ambigNrisk');
+sv_fixed = ambig_utility(0,5,1,0,alpha,beta,'risk');
 
 % Flip sign, since the data files store only value magnitudes 
 if ~is_gains
@@ -112,7 +118,7 @@ end
 
 % calculate the chosen subjective value (CV) for each trial
 cv = sv;
-cv(choice == 0) = sv_fixed;
+cv(choice' == 0) = sv_fixed;
 cv(isnan(choice)) = NaN;
 
 %% Get correct block order
