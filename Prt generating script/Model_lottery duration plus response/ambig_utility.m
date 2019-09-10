@@ -1,4 +1,4 @@
-function y = ambig_utility(base,v,p,AL,alpha,beta,model);
+function y = ambig_utility(base,v,p,AL,alpha,beta,model)
 
 if (strcmp(model,'ambiguity') || strcmp(model,'ambigNrisk')) || strcmp(model,'ambigNriskFixSlope')
     % the model we are using
@@ -9,6 +9,9 @@ elseif strcmp(model,'discounting')
     %y = v ./ (1 + alpha.*log(1+(1-p+beta.*AL./2)./(p-beta.*AL./2)));
     y = v ./ (1 + alpha.*(1-p+beta.*AL./2)./(p-beta.*AL./2));
     %y = v ./ (1 + alpha.*(1-p)./p);
+elseif strcmp(model,'risk')
+    v(AL ~= 0) = NaN;
+    y = p .* v .^alpha;
 end
 
 
