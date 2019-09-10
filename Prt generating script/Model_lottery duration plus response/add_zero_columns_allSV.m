@@ -8,10 +8,9 @@
 %   of predictor colors will automatically match the new SDMMatrix.
 clearvars
 %% 
-sdmwave = 'Sdm files_09100419';
-predictorNums = 10; % the correct number of predictors
-PredictorNames_new = {'Amb_gains_Display', 'Amb_gains_Display x p1', 'Risk_gains_Display', 'Risk_gains_Display x p1',...
-                      'Amb_loss_Display', 'Amb_loss_Display x p1', 'Risk_loss_Display', 'Risk_loss_Display x p1', 'Resp', 'Constant'};
+sdmwave = 'Sdm files_091019';
+predictorNums = 4; % the correct number of predictors
+PredictorNames_new = {'Display', 'Display x p1', 'Resp', 'Constant'};
 
 root = 'D:\Ruonan\Projects in the lab\VA_RA_PTB\Analysis Ruonan\Sdm files';
 pathin = fullfile(root, sdmwave, filesep);
@@ -22,7 +21,7 @@ if exist(pathout) == 0
 end
 
 % find the files to add zeros
-param2add = {'CV'};
+param2add = {'allSV'};
 for i = 1:length(param2add)
     files2add = dir([pathin '*_' param2add{i} '.sdm']);
       for s = 1:length(files2add)
@@ -73,14 +72,14 @@ end
   
 % move the missing-column  _RiskLevel and _Ambiguitylevel sdm to the old folder
 desti_old = fullfile(pathin,'sdm_missingColumns\');
-source_cv = fullfile(pathin, '*_CV.sdm');
+source_sv = fullfile(pathin, '*_allSV.sdm');
    
-movefile(source_cv,desti_old);
+movefile(source_sv,desti_old);
 
 % move the adding-column sdm out of the AddingZeros folder
-source_cv = fullfile(pathout, '*_CV.sdm');
+source_sv = fullfile(pathout, '*_allSV.sdm');
 
-movefile(source_cv,pathin);
+movefile(source_sv,pathin);
 
 rmdir(pathout) % remove AddingZeros folder
         
