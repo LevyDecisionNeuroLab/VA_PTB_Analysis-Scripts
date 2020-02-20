@@ -1,0 +1,298 @@
+function PTB_Protocol_Gen_ver3_uncert(subjectNum, gainsloss, tr, trialduration, DiscAcq, ParametricMod, path_in, path_out, PRT, par)
+%PTB_PROTOCOL_GEN Generates PRT Files from Psychtoolbox Data Files
+%
+%INPUTS:
+%       subjectNum - Specifies subject file to be loaded
+%       gainsloss - A string of either 'gains' or 'loss' to indicate the domain to extract
+%       tr - Temporal resolution of the visual data, in seconds
+%       trialduration - Number of seconds to analyze after trial onset
+%       DiscAcq - Number of seconds to discard at the beginning of each block
+%       ParametricMod - which value to use as parameter? Values: 'RewardValue', 'RiskLevel', 'AmbiguityLevel', 'SV', or ''
+%       path_in - the dominant folder that both auxiliary function files and data files are stored in
+%       path_out - the folder to save the generated PRT files into
+%       PRT - a struct of settings for the PRT file
+%       par - a table containing model fitted parameters, both gains and
+%       losses for a single subject
+%
+%OUTPUT: PRT files for given domain in the folder specified by `path_out`
+%
+% NOTE: In order to create a protocol file with onsets measured in seconds,
+% simply switch tr value to 1
+
+%% Process arguments
+% Store in logical value whether protocol should be generated for gains or losses
+is_gains = strcmp(gainsloss, 'gains');
+if (~is_gains && ~strcmp(gainsloss, 'loss'))
+  error('Aborting: `gainsloss` must be set to either "gains" or "loss"!')
+  return
+end
+
+% Set NumParametricWeights on the basis of ParametricMod
+if strcmp(ParametricMod, 'uncert_none')
+  NumParametricWeights = 0;
+end
+PRT.ParametricWeights = num2str(NumParametricWeights);
+
+% For PRT properties, fix colors into correct order
+if ~is_gains
+  Colors = {PRT.ColorLoss_r25, PRT.ColorLoss_r50, PRT.ColorLoss_r75, PRT.ColorLoss_a24, PRT.ColorLoss_a50, PRT.ColorLoss_a74, PRT.ColorLoss_resp};
+  alt_colors = {PRT.ColorGain_r25, PRT.ColorGain_r50, PRT.ColorGain_r75, PRT.ColorGain_a24, PRT.ColorGain_a50, PRT.ColorGain_a74, PRT.ColorGain_resp};
+else
+  Colors = {PRT.ColorGain_r25, PRT.ColorGain_r50, PRT.ColorGain_r75, PRT.ColorGain_a24, PRT.ColorGain_a50, PRT.ColorGain_a74, PRT.ColorGain_resp};
+  alt_colors = {PRT.ColorLoss_r25, PRT.ColorLoss_r50, PRT.ColorLoss_r75, PRT.ColorLoss_a24, PRT.ColorLoss_a50, PRT.ColorLoss_a74, PRT.ColorLoss_resp};
+end
+%% Load Gains and Loss Data files
+% Add the directory & all subdirs to path
+addpath(genpath(path_in)); 
+
+load(['RA_GAINS_' num2str(subjectNum) '_fitpar.mat']);
+gdata = Data;
+load(['RA_LOSS_' num2str(subjectNum) '_fitpar.mat']);
+ldata = Data;
+
+clearvars Data; % avoid accidental name collision
+
+% Pick the domain to analyze
+if (is_gains)
+  data = gdata;
+else
+  data = ldata;
+end
+
+% model fitted parameters for calculating subjective value
+alpha = par.alpha(par.isGain == is_gains);
+beta = par.beta(par.isGain == is_gains);
+
+%% Compute subjective value of each choice
+% Use the best fit for every subjects (most should be unconstrained, use constrained for a few subjects)
+model = 'ambigNrisk';
+
+if ~isnan(alpha) && isnan(beta)
+    model = 'risk';
+end
+
+for reps = 1:length(data.choice)
+  sv(reps, 1) = ambig_utility(0, ...
+      data.vals(reps), ...
+      data.probs(reps), ...
+      data.ambigs(reps), ...
+      alpha, ...
+      beta, ...
+      model);
+end
+
+% Side with lottery is counterbalanced across subjects 
+% -> code 0 as reference choice, 1 as lottery choice
+% TODO: Double-check this is so? - This is true(RJ)
+% TODO: Save in a different variable?
+% if sum(choice == 2) > 0 % Only if choice has not been recoded yet. RJ-Not necessary
+% RJ-If subject do not press 2 at all, the above if condition is problematic
+choice = data.choice;
+choice(choice==0) = NaN;
+
+if data.refSide == 2
+  choice(choice == 2) = 0;
+  choice(choice == 1) = 1;
+elseif data.refSide == 1 % Careful: rerunning this part will make all choices 0
+  choice(choice == 1) = 0;
+  choice(choice == 2) = 1;
+end
+
+% calculate the subjective value for the fixed $5
+sv_fixed = ambig_utility(0,5,1,0,alpha,beta,'risk');
+
+% Flip sign, since the data files store only value magnitudes 
+if ~is_gains
+  sv(:, 1) = -1 * sv(:, 1);
+  sv_fixed = -sv_fixed;
+end
+
+% calculate the chosen subjective value (CV) for each trial
+cv = sv;
+cv(choice' == 0) = sv_fixed;
+cv(isnan(choice)) = NaN;
+
+%% Get correct block order
+if subjectNum ~= 95
+    block_order = getBlockOrder(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract(gdata);
+    lon = PTB_Protocol_OnsetExtract(ldata);
+
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2, lon.b3, lon.b4};
+else
+    block_order = getBlockOrder_subj95(is_gains, gdata, ldata);
+    % Load onset times
+    gon = PTB_Protocol_OnsetExtract_subj95(gdata);
+    lon = PTB_Protocol_OnsetExtract_subj95(ldata);
+    
+    % Extract per-block time info from returned argument
+    gonsets = {gon.b1, gon.b2, gon.b3, gon.b4};
+    lonsets = {lon.b1, lon.b2};
+end
+
+%% Iterate over blocks in domain
+% NOTE: 4 is magic number, since currently each domain has exactly 4 blocks
+for blocknum = 1:4
+  if subjectNum == 95 && (blocknum == 3 || blocknum ==4) && ~is_gains  
+     continue % skip the for loop
+  end    
+  %% Select onset/offset time block to use
+  if is_gains
+    prtblock = gonsets{blocknum};
+  else
+    prtblock = lonsets{blocknum};
+  end
+
+  %% Process onset/offset times
+  [ onsets, offsets ] = getBlockOnsetOffset(prtblock, DiscAcq, tr, trialduration);
+
+  %% Compute values from current block
+  % Get indices for risk trials and ambiguity trials (30 values, regularly spaced)
+  current_block_range = (2:31) + (blocknum - 1) * 31;
+
+  % Divide blocks by type of lottery (store indices with risk-only vs. risk-and-ambiguity)
+  amb_index = data.ambigs(current_block_range) > 0;
+  risk_index = data.ambigs(current_block_range) == 0;
+
+  % index for risk levels
+  index_r25 = data.probs(current_block_range) == 0.25;
+  index_r50 = data.probs(current_block_range) == 0.5 & data.ambigs(current_block_range) == 0;
+  index_r75 = data.probs(current_block_range) == 0.75;
+   
+  % index for ambiguity levels
+  index_a24 = data.ambigs(current_block_range) == 0.24;
+  index_a50 = data.ambigs(current_block_range) == 0.5;
+  index_a74 = data.ambigs(current_block_range) == 0.74;
+
+
+  %% Select what parametric value to write (or not write) into PRT file
+  if strcmp(ParametricMod, 'uncert_none')
+      block_r25 = [onsets(index_r25,1) offsets(index_r25,1)];
+      block_r50 = [onsets(index_r50,1) offsets(index_r50,1)];
+      block_r75 = [onsets(index_r75,1) offsets(index_r75,1)];
+      block_a24 = [onsets(index_a24,1) offsets(index_a24,1)];
+      block_a50 = [onsets(index_a50,1) offsets(index_a50,1)];
+      block_a74 = [onsets(index_a74,1) offsets(index_a74,1)];
+  end
+
+  
+  % Store the basic onset/offset, computed earlier
+  block_amb = [onsets(amb_index,1) offsets(amb_index,1)];
+  block_risk = [onsets(risk_index,1) offsets(risk_index,1)];
+  
+  block_choice = choice(current_block_range)';
+  
+  resp = [offsets(~isnan(block_choice),2) offsets(~isnan(block_choice),2)]; % response for all trials with response
+
+
+  %% Write file to txt
+  
+  % Determine session for filename
+  if blocknum <= 2
+    Session = 'S1';
+  else
+    Session = 'S2';
+  end
+
+  % Open file for writing
+  fname = [path_out num2str(subjectNum) '_' Session '_block' block_order{blocknum} ...
+      '_' gainsloss num2str(blocknum) '_model_dispresp' '_type_' ParametricMod '.prt']
+  fileID = fopen(fname, 'w');
+
+  % TODO: Figure out how %Ns works -- it's highly unlikely that both values
+  % actually do a useful thing
+  fprintf(fileID, '%12s %10s\r\n \r\n', 'FileVersion:', PRT.FileVersion);
+  fprintf(fileID, '%17s %11s\r\n \r\n', 'ResolutionOfTime:', PRT.ResolutionOfTime);
+  fprintf(fileID, '%11s %21s\r\n \r\n', 'Experiment:', PRT.Experiment);
+  fprintf(fileID, '%16s %16s\r\n', 'BackgroundColor:', PRT.BackgroundColor);
+  fprintf(fileID, '%10s %16s\r\n', 'TextColor:', PRT.TextColor);
+  fprintf(fileID, '%16s %10s\r\n', 'TimeCourseColor:', PRT.TimeCourseColor);
+  fprintf(fileID, '%16s %6s\r\n', 'TimeCourseThick:', PRT.TimeCourseThick);
+  fprintf(fileID, '%19s %11s\r\n', 'ReferenceFuncColor:', PRT.ReferenceFuncColor);
+  fprintf(fileID, '%19s %3s\r\n \r\n', 'ReferenceFuncThick:', PRT.ReferenceFuncThick);
+
+  fprintf(fileID, '\r\n%15s %7s\r\n\r\n', 'NrOfConditions:', PRT.NrOfConditions);
+
+  % NOTE: Empty conditions -- set here for purposes of consistent order. 
+  if ~is_gains
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_r25_Display', '0', 'Color:', alt_colors{1}); %\r\n is starting a new line
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_r50_Display', '0', 'Color:', alt_colors{2});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_r75_Display', '0', 'Color:', alt_colors{3});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_a24_Display', '0', 'Color:', alt_colors{4});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_a50_Display', '0', 'Color:', alt_colors{5});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'gains_a74_Display', '0', 'Color:', alt_colors{6});        
+  end
+
+  % Print the r25 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_r25' '_Display']); % even with parametric, 'x p1' is not included in the name
+  fprintf(fileID, '%4s\r\n', num2str(size(block_r25,1))); % Use size instead of length function, to preven when there is only 1 trial in for condition. Length funtion will give '2' when there is only 1 trial.
+  if ~isempty(block_r25)
+   fprintf(fileID, '%4.0f\t %3.0f\r\n', block_r25');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{1});   
+
+  % Print the r50 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_r50' '_Display']); 
+  fprintf(fileID, '%4s\r\n', num2str(size(block_r50,1)));
+  if ~isempty(block_r50)
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', block_r50');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{2}); 
+
+
+  % Print the r75 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_r75' '_Display']); 
+  fprintf(fileID, '%4s\r\n', num2str(size(block_r75,1)));
+  if ~isempty(block_r75)
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', block_r75');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{3}); 
+
+  % Print the a24 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_a24' '_Display']); 
+  fprintf(fileID, '%4s\r\n', num2str(size(block_a24,1)));
+  if ~isempty(block_a24)
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', block_a24');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{4}); 
+
+  % Print the a50 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_a50' '_Display']); 
+  fprintf(fileID, '%4s\r\n', num2str(size(block_a50,1)));
+  if ~isempty(block_a50)
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', block_a50');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{5}); 
+
+   % Print the a74 Display block for given domain
+  fprintf(fileID, '%16s\r\n', [gainsloss '_a74' '_Display']); 
+  fprintf(fileID, '%4s\r\n', num2str(size(block_a74,1)));
+  if ~isempty(block_a74)
+    fprintf(fileID, '%4.0f\t %3.0f\r\n', block_a74');
+  end
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{6}); 
+
+
+  % Equivalent empty-condition block from above
+  if is_gains
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_r25_Display', '0', 'Color:', alt_colors{1}); %\r\n is starting a new line
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_r50_Display', '0', 'Color:', alt_colors{2});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_r75_Display', '0', 'Color:', alt_colors{3});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_a24_Display', '0', 'Color:', alt_colors{4});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_a50_Display', '0', 'Color:', alt_colors{5});
+    fprintf(fileID, '%16s\r\n%3s\r\n%4s %6s\r\n\r\n', 'loss_a74_Display', '0', 'Color:', alt_colors{6});
+  end
+
+  
+  % Print the response for all trials
+  fprintf(fileID, '%4s\r\n', 'Resp');
+  fprintf(fileID, '%4s\r\n', num2str(length(resp)));
+  fprintf(fileID, '%4.0f\t %3.0f\r\n', resp');
+  fprintf(fileID, '%6s %7s\r\n\r\n', 'Color:', Colors{7});  
+  
+  fclose(fileID);
+end
+end
